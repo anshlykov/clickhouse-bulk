@@ -39,6 +39,15 @@ type Collector struct {
 	Sender        Sender
 }
 
+type FormatType int8
+
+const (
+	Unknown FormatType = iota
+	SqlValues
+	JSONEachRow
+	TabSeparated
+)
+
 // NewTable - default table constructor
 func NewTable(name string, sender Sender, count int, interval int) (t *Table) {
 	t = new(Table)
@@ -265,48 +274,38 @@ func (c *Collector) ParseQuery(queryString string, body string) (params string, 
 	return strings.TrimSpace(params), strings.TrimSpace(content), insert
 }
 
+func GetInsertFormatType(query string) (format FormatType, dataPos int) {
+	k := strings.Index(query, "VALUES")
+	if k != -1 {
+		return SqlValues, k + len("VALUES")
+	}
+	k = strings.Index(query, "FORMAT")
+	if k != -1 {
+		k = k + 7
+		// todo check length
+		formatSubString := strings.TrimLeft(query[k:k+20], "\t \n")
+		if strings.HasPrefix(formatSubString, "JSONEachRow") {
+			return JSONEachRow, k + len("JSONEachRow")
+		}
+		if strings.HasPrefix(formatSubString, "TabSeparated") {
+			return TabSeparated, k + len("TabSeparated")
+		}
+	}
+	return Unknown, -1
+}
+
 // Parse - parsing text for query and data
 func (c *Collector) Parse(text string) (prefix string, content string) {
-	i := strings.Index(text, "FORMAT")
-	k := strings.Index(text, "VALUES")
-	if k == -1 {
-		k = strings.Index(text, "values")
-	}
-	if i >= 0 && i < k {
-		w := false
-		off := -1
-		for c := i + 7; c < len(text); c++ {
-			if !w && text[c] != ' ' && text[c] != '\n' && text[c] != ';' {
-				w = true
-			}
-			if w && (text[c] == ' ' || text[c] == '\n' || text[c] == ';') {
-				off = c + 1
-				break
-			}
-		}
-		if off >= 0 {
-			prefix = text[:off]
-			content = text[off:]
-		}
-	} else {
-		if k >= 0 {
-			prefix = strings.TrimSpace(text[:k+6])
-			content = strings.TrimSpace(text[k+6:])
-		} else {
-			off := regexFormat.FindStringSubmatchIndex(text)
-			if len(off) > 3 {
-				prefix = text[:off[3]]
-				content = text[off[3]:]
-			} else {
-				off := regexValues.FindStringSubmatchIndex(text)
-				if len(off) > 0 {
-					prefix = text[:off[1]]
-					content = text[off[1]:]
-				} else {
-					prefix = text
-				}
-			}
-		}
+	formatType, dataPos := GetInsertFormatType(text)
+
+	switch formatType {
+	case SqlValues, JSONEachRow, TabSeparated:
+		prefix = strings.TrimSpace(text[:dataPos])
+		content = strings.TrimSpace(text[dataPos:])
+	case Unknown:
+		// TODO undefined
+		prefix = text
+		content = ""
 	}
 	return prefix, content
 }
