@@ -5,14 +5,12 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"text/scanner"
 	"time"
 )
 
 const formatValues = "values"
-const formatTabSeparated = "tabseparated"
 
-var regexFormat = regexp.MustCompile("(?i)format\\s\\S+(\\s+)")
-var regexValues = regexp.MustCompile("(?i)\\svalues\\s")
 var regexGetFormat = regexp.MustCompile("(?i)format\\s(\\S+)")
 
 // Table - store query table info
@@ -38,15 +36,6 @@ type Collector struct {
 	FlushInterval int
 	Sender        Sender
 }
-
-type FormatType int8
-
-const (
-	Unknown FormatType = iota
-	SqlValues
-	JSONEachRow
-	TabSeparated
-)
 
 // NewTable - default table constructor
 func NewTable(name string, sender Sender, count int, interval int) (t *Table) {
@@ -274,21 +263,34 @@ func (c *Collector) ParseQuery(queryString string, body string) (params string, 
 	return strings.TrimSpace(params), strings.TrimSpace(content), insert
 }
 
+type FormatType int8
+
+const (
+	Unknown FormatType = iota
+	SqlValues
+	JSONEachRow
+	TabSeparated
+)
+
 func GetInsertFormatType(query string) (format FormatType, dataPos int) {
-	k := strings.Index(query, "VALUES")
-	if k != -1 {
-		return SqlValues, k + len("VALUES")
-	}
-	k = strings.Index(query, "FORMAT")
-	if k != -1 {
-		k = k + 7
-		// todo check length
-		formatSubString := strings.TrimLeft(query[k:k+20], "\t \n")
-		if strings.HasPrefix(formatSubString, "JSONEachRow") {
-			return JSONEachRow, k + len("JSONEachRow")
+	var s scanner.Scanner
+	s.Init(strings.NewReader(query))
+
+	for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
+		tokenText := s.TokenText()
+		if strings.EqualFold("VALUES", tokenText) {
+			offset := s.Position.Offset
+			return SqlValues, offset + len("VALUES")
 		}
-		if strings.HasPrefix(formatSubString, "TabSeparated") {
-			return TabSeparated, k + len("TabSeparated")
+		if strings.EqualFold("FORMAT", tokenText) {
+			tok = s.Scan()
+			offset := s.Position.Offset
+			switch strings.ToLower(s.TokenText()) {
+			case "jsoneachrow":
+				return JSONEachRow, offset + len("JSONEachRow")
+			case "tabseparated":
+				return TabSeparated, offset + len("tabseparated")
+			}
 		}
 	}
 	return Unknown, -1
