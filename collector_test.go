@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -99,11 +100,10 @@ func TestCollector_ParseQuery(t *testing.T) {
 	assert.Equal(t, "{\"field1\":\"some text\", \"bigdecimal\":2.122423232,\"simpleLong\":2113}", content)
 	assert.Equal(t, true, insert)
 
-	// todo add support not only UpperCase syntax
-	//params, content, insert = c.ParseQuery("query="+url.QueryEscape(qValuesTitle+" "+qValuesContent), "")
-	//assert.Equal(t, "query="+url.QueryEscape(qValuesTitle), params)
-	//assert.Equal(t, qValuesContent, content)
-	//assert.Equal(t, true, insert)
+	params, content, insert = c.ParseQuery("query="+url.QueryEscape(qValuesTitle+" "+qValuesContent), "")
+	assert.Equal(t, "query="+url.QueryEscape(qValuesTitle), params)
+	assert.Equal(t, qValuesContent, content)
+	assert.Equal(t, true, insert)
 
 	params, content, insert = c.ParseQuery("", qSelect)
 
@@ -111,24 +111,21 @@ func TestCollector_ParseQuery(t *testing.T) {
 	assert.Equal(t, "", content)
 	assert.Equal(t, false, insert)
 
-	// todo add support not only UpperCase syntax
-	//params, content, insert = c.ParseQuery("", strings.ToLower(qTitle)+" "+qContent)
-	//assert.Equal(t, "query="+strings.ToLower(escTitle), strings.ToLower(params))
-	//assert.Equal(t, qContent, content)
-	//assert.Equal(t, true, insert)
+	params, content, insert = c.ParseQuery("", strings.ToLower(qTitle)+" "+qContent)
+	assert.Equal(t, "query="+strings.ToLower(escTitle), strings.ToLower(params))
+	assert.Equal(t, qContent, content)
+	assert.Equal(t, true, insert)
 
-	// todo add support not only UpperCase syntax
-	//params, content, insert = c.ParseQuery("", strings.ToLower(qValuesTitle)+" "+qValuesContent)
-	//assert.Equal(t, "query="+strings.ToLower(url.QueryEscape(qValuesTitle)), strings.ToLower(params))
-	//assert.Equal(t, qValuesContent, content)
-	//assert.Equal(t, true, insert)
+	params, content, insert = c.ParseQuery("", strings.ToLower(qValuesTitle)+" "+qValuesContent)
+	assert.Equal(t, "query="+strings.ToLower(url.QueryEscape(qValuesTitle)), strings.ToLower(params))
+	assert.Equal(t, qValuesContent, content)
+	assert.Equal(t, true, insert)
 
-	// todo add support not only UpperCase syntax
-	//params, content, insert = c.ParseQuery("", qValuesTitleUpper+" "+qValuesContent)
-	//
-	//assert.Equal(t, "query="+strings.ToLower(url.QueryEscape(qValuesTitleUpper)), strings.ToLower(params))
-	//assert.Equal(t, qValuesContent, content)
-	//assert.Equal(t, true, insert)
+	params, content, insert = c.ParseQuery("", qValuesTitleUpper+" "+qValuesContent)
+
+	assert.Equal(t, "query="+strings.ToLower(url.QueryEscape(qValuesTitleUpper)), strings.ToLower(params))
+	assert.Equal(t, qValuesContent, content)
+	assert.Equal(t, true, insert)
 
 	params, content, insert = c.ParseQuery(badEscQuery, qValuesTitleUpper+" "+qValuesContent)
 
