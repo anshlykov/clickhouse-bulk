@@ -22,9 +22,6 @@ const badEscQuery = "query=INSERT %zdwfr"
 const qFormatInQuotesQuery = "INSERT INTO test (date, args) VALUES"
 const qFormatInQuotesValues = "('2019-06-13', 'query=select%20args%20from%20test%20group%20by%20date%20FORMAT%20JSON')"
 
-const qTSNamesTitle = "INSERT INTO table3 (c1, c2, c3) FORMAT TabSeparatedWithNames"
-const qNames = "field1	field2	field3"
-
 var escTitle = url.QueryEscape(qTitle)
 var escSelect = url.QueryEscape(qSelect)
 var escParamsAndSelect = qParams + "&query=" + escSelect

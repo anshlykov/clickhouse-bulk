@@ -10,10 +10,7 @@ import (
 )
 
 const formatValues = "values"
-const formatTabSeparated = "tabseparated"
 
-var regexFormat = regexp.MustCompile("(?i)format\\s\\S+(\\s+)")
-var regexValues = regexp.MustCompile("(?i)\\svalues\\s")
 var regexGetFormat = regexp.MustCompile("(?i)format\\s(\\S+)")
 
 // Table - store query table info
@@ -39,15 +36,6 @@ type Collector struct {
 	FlushInterval int
 	Sender        Sender
 }
-
-type FormatType int8
-
-const (
-	Unknown FormatType = iota
-	SqlValues
-	JSONEachRow
-	TabSeparated
-)
 
 // NewTable - default table constructor
 func NewTable(name string, sender Sender, count int, interval int) (t *Table) {
@@ -275,6 +263,15 @@ func (c *Collector) ParseQuery(queryString string, body string) (params string, 
 	return strings.TrimSpace(params), strings.TrimSpace(content), insert
 }
 
+type FormatType int8
+
+const (
+	Unknown FormatType = iota
+	SqlValues
+	JSONEachRow
+	TabSeparated
+)
+
 func GetInsertFormatType(query string) (format FormatType, dataPos int) {
 	var s scanner.Scanner
 	s.Init(strings.NewReader(query))
@@ -290,7 +287,7 @@ func GetInsertFormatType(query string) (format FormatType, dataPos int) {
 			offset := s.Position.Offset
 			switch strings.ToLower(s.TokenText()) {
 			case "jsoneachrow":
-				return JSONEachRow, offset + len("jsoneachrow")
+				return JSONEachRow, offset + len("JSONEachRow")
 			case "tabseparated":
 				return TabSeparated, offset + len("tabseparated")
 			}
